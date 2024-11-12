@@ -7,6 +7,9 @@ import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pickle
+import io
+from PyPDF2 import PdfReader
+import tempfile
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
@@ -27,7 +30,7 @@ def authenticate():
     
     return build('gmail', 'v1', credentials=creds)
 
-def download_attachments(service, start_date, end_date, download_folder="attachments"):
+def download_attachments(service, start_date, end_date, search_strings=[], download_folder="attachments"):
     if not os.path.exists(download_folder):
         os.makedirs(download_folder)
         
@@ -41,8 +44,7 @@ def download_attachments(service, start_date, end_date, download_folder="attachm
         
         if 'parts' in payload:
             for part in payload['parts']:
-                if part.get('filename'):
-                    filename = part['filename']
+                if part.get('filename') and part['filename'].lower().endswith('.pdf'):
                     if 'data' in part['body']:
                         data = part['body']['data']
                     else:
@@ -52,18 +54,40 @@ def download_attachments(service, start_date, end_date, download_folder="attachm
                         ).execute()
                         data = att['data']
                     
+                    # Decode the PDF data
                     file_data = base64.urlsafe_b64decode(data)
-                    filepath = os.path.join(download_folder, filename)
                     
-                    with open(filepath, 'wb') as f:
-                        f.write(file_data)
-                    print(f"Downloaded: {filename}")
+                    # Create a temporary file to read the PDF
+                    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                        temp_file.write(file_data)
+                        temp_path = temp_file.name
+                    
+                    try:
+                        # Read PDF content
+                        pdf = PdfReader(temp_path)
+                        pdf_text = ""
+                        for page in pdf.pages:
+                            pdf_text += page.extract_text().lower()
+                        
+                        # Check if any search string is in the PDF content
+                        if any(search_string.lower() in pdf_text for search_string in search_strings):
+                            filepath = os.path.join(download_folder, part['filename'])
+                            with open(filepath, 'wb') as f:
+                                f.write(file_data)
+                            print(f"Downloaded: {part['filename']}")
+                    
+                    except Exception as e:
+                        print(f"Error processing PDF {part['filename']}: {str(e)}")
+                    finally:
+                        # Clean up temporary file
+                        os.unlink(temp_path)
 
 def main():
     service = authenticate()
-    start_date = "2024/10/01"  # Format: YYYY/MM/DD
-    end_date = "2024/10/31"    # Format: YYYY/MM/DD
-    download_attachments(service, start_date, end_date)
+    start_date = "2024/10/01"
+    end_date = "2024/10/31"
+    search_strings = ["9512302884", "IAPP"] 
+    download_attachments(service, start_date, end_date, search_strings)
 
 if __name__ == '__main__':
     main()
