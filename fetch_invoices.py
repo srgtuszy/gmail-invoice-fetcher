@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -10,6 +12,8 @@ import pickle
 import io
 from PyPDF2 import PdfReader
 import tempfile
+from datetime import datetime
+from typing import List
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
@@ -111,11 +115,38 @@ def download_attachments(service, start_date, end_date, search_strings=[], downl
             except Exception as e:
                 print(f"Error processing {part.get('filename', 'unknown file')}: {str(e)}")
 
+def validate_date_format(date_str: str) -> bool:
+    """Validate if the date string matches YYYY/MM/DD format."""
+    try:
+        datetime.strptime(date_str, '%Y/%m/%d')
+        return True
+    except ValueError:
+        return False
+
+def get_env_date(env_var: str, default: str) -> str:
+    """Get and validate date from environment variable."""
+    date_str = os.getenv(env_var, default)
+    if not validate_date_format(date_str):
+        raise ValueError(f"Invalid date format for {env_var}. Expected format: YYYY/MM/DD")
+    return date_str
+
+def get_search_strings() -> List[str]:
+    """Get search strings from environment variable."""
+    search_strings_env = os.getenv('SEARCH_STRINGS', '')
+    if not search_strings_env:
+        raise ValueError("SEARCH_STRINGS environment variable is required")
+    return [s.strip() for s in search_strings_env.split(',')]
+
 def main():
     service = authenticate()
-    start_date = "2024/10/01"
-    end_date = "2024/10/31"
-    search_strings = ["9512302884", "IAPP"] 
+    
+    # Get dates from environment variables
+    start_date = get_env_date('START_DATE', '2024/01/01')
+    end_date = get_env_date('END_DATE', '2024/12/31')
+    
+    # Get search strings from environment variable
+    search_strings = get_search_strings()
+    
     download_attachments(service, start_date, end_date, search_strings)
 
 if __name__ == '__main__':
