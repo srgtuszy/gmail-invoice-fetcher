@@ -1,6 +1,6 @@
 # Gmail Invoice Fetcher 📧 → 📂
 
-Born out of the annual panic of "where the hell are all my invoices?" when tax season hits. If you're like me and your inbox is a black hole of PDFs, this script is your rescue mission.
+Born out of the monthly panic of "where the hell are all my invoices?" when tax season hits. If you're like me and your inbox is a black hole of PDFs, this script is your rescue mission.
 
 ## What It Does
 
