@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 
-from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 import base64
 import os
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import pickle
-import io
 from PyPDF2 import PdfReader
 import tempfile
 from datetime import datetime
